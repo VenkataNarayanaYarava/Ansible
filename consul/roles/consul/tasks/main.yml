@@ -1,0 +1,132 @@
+- name: Updating OS
+  shell:
+   cmd: sudo apt update -y
+
+- name: Install Prerequisites
+  apt:
+    name: '{{ item }}'
+    state: latest
+  with_items:
+     - unzip
+     - tmux
+     - nginx
+  become: true
+  tags: installation
+
+
+# Add group
+- name: Add Consul group
+  group:
+    name: "{{ consul_group }}"
+    state: present
+
+
+# Add user
+- name: Add Consul user
+  user:
+    name: "{{ consul_user }}"
+    comment: "Consul user"
+    group: "{{ consul_group }}"
+    system: true
+    
+    
+- name: Download Consul
+  get_url:
+    url: "{{ consul_zip_file_url }}"
+    dest: /opt/
+  tags: installation
+
+- name: Unzip Consul zip file
+  unarchive:
+    src: /opt/consul_1.7.1_linux_amd64.zip
+    dest: /usr/local/bin
+    copy: false
+    owner: "{{ consul_user }}"
+    group: "{{ consul_group }}"
+    mode: 0755
+  register: consul_install
+  notify:
+    - restart consul
+  tags: installation
+
+
+- name: Updating OS
+  shell:
+   cmd: sudo apt update -y
+
+- name: Removing zip file
+  shell:
+   cmd: rm -rf /opt/consul_1.7.1_linux_amd64.zip
+
+- name: Set Ulimit
+  raw: echo "consul   -   nofile   65536" >> /etc/security/limits.conf
+
+- name: Set Ulimit
+  raw: echo "consul   -   nproc    4096" >> /etc/security/limits.conf
+
+- name: Set Ulimit
+  raw: echo "root    -   nofile   65536" >> /etc/security/limits.conf
+
+- name: Set Ulimit
+  raw: echo "root    -   nproc    4096" >> /etc/security/limits.conf
+
+- name: Create directories
+  block:
+  - name: Configuration and data directories
+    file:
+      dest: "{{ item }}"
+      state: directory
+      owner: "{{ consul_user }}"
+      group: "{{ consul_group }}"
+      mode: 0700
+    with_items:
+      - ~/consul-config
+      - ~/consul-config/server
+      - /etc/consul.d/
+      - /etc/consul.d/client
+
+- name: copy file config.json
+  template:
+    src: config.json
+    dest:  ~/consul-config/server/config.json
+    owner: consul
+    group: consul
+    mode:  0755
+
+
+- name: copy file config.json
+  template:
+    src: consul.conf
+    dest:  /etc/nginx/conf.d/consul.conf
+    owner: consul
+    group: consul
+    mode:  0755
+    
+- name: copy file configclient.json
+  template:
+    src: configclient.json
+    dest:  /etc/consul.d/client/config.json
+    owner: consul
+    group: consul
+    mode:  0755
+    
+- name: copy file consul-client service
+  template:
+    src: consul-client.service
+    dest:  /etc/systemd/system/consul-client.service
+    owner: consul
+    group: consul
+    mode:  0755
+
+- name: just force systemd to reread configs (2.4 and above)
+  systemd: daemon_reload=yes
+  notify: start consul
+  
+
+- name: Agent initiation
+  shell:
+   cmd: consul agent -config-dir ~/consul-config/server  -bootstrap -client=0.0.0.0
+
+- name: Agent tag
+  shell:
+   cmd: consul agent -retry-join "provider=aws tag_key=... tag_value=..."

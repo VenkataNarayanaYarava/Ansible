@@ -1,0 +1,16 @@
+{
+"bootstrap": true,
+"server": true,
+"log_level": "DEBUG",
+"enable_syslog": true,
+"datacenter": "Us-Central",
+"addresses" : {
+"http": "0.0.0.0"
+},
+"bind_addr": "18.191.130.54",
+"node_name": "ip-172-31-33-99",
+"data_dir": "~/consul-config/server",
+"acl_datacenter": "Us-Central",
+"acl_default_policy": "allow",
+"encrypt": "5KKufILrf186BGlilFDNig=="
+}

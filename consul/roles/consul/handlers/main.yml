@@ -1,0 +1,14 @@
+---
+- name: restart consul on Linux
+  service:
+    name: consul
+    state: restarted
+  when: ansible_os_family != "Windows"
+  listen: 'restart consul'
+  
+- name: resart consul
+  service:
+    name: consul-client
+    state: start
+
+

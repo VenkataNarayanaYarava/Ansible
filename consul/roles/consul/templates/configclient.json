@@ -1,0 +1,12 @@
+{
+    "server": false,
+    "datacenter": "Us-Central",
+    "data_dir": "/var/consul",
+    "encrypt": "5KKufILrf186BGlilFDNig==",
+    "log_level": "INFO",
+    "enable_syslog": true,
+    "leave_on_terminate": true,
+    "start_join": [
+        "18.191.130.54"
+    ]
+}

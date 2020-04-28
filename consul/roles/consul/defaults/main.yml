@@ -1,0 +1,3 @@
+consul_zip_file_url: "https://releases.hashicorp.com/consul/1.7.1/consul_1.7.1_linux_amd64.zip"
+consul_user: "consul"
+consul_group: "consul"
