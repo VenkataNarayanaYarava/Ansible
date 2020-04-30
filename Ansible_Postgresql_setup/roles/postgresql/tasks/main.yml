@@ -1,0 +1,115 @@
+# This Playbook Will install sonarqube in local
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  become : yes
+  tasks:
+  - name: set Selinux
+    command: setenforce 0
+
+  - name: set Selinux
+    command: sed -i s/^SELINUX=.*$/SELINUX=permissive/ /etc/selinux/config
+
+  - name: Set Ulimit
+    raw: echo "sonar   -   nofile   65536" >> /etc/security/limits.conf
+
+  - name: Set Ulimit
+    raw: echo "sonar   -   nproc    4096" >> /etc/security/limits.conf
+
+  - name: Set Ulimit
+    raw: echo "root    -   nofile   65536" >> /etc/security/limits.conf
+
+  - name: Set Ulimit
+    raw: echo "root    -   nproc    4096" >> /etc/security/limits.conf
+
+  - name: Set fs.file
+    raw: echo "fs.file-max=65536" >> /etc/sysctl.conf
+
+  - name: Set vm.max.map
+    raw: echo "vm.max_map_count=262144" >> /etc/sysctl.conf
+
+  - name: install wget
+    shell:
+     cmd: yum install wget -y
+
+  - name: Install gcc-c++
+    yum:
+     name: gcc-c++
+     state: latest
+
+  - name: Install jdk-11
+    yum:
+     name: java-11-openjdk
+     state: latest
+
+  - name: Install make
+    yum:
+     name: make
+     state: latest
+	
+  - name: Install PostgreSQL RPM
+    yum:
+     name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+     state: present
+
+  - name: Removing postgreSql
+    yum:
+     name: postgr*
+     state: removed
+
+  - name: remove postgres dependency
+    shell:
+     cmd: rm -rf /etc/sysconfig/pgsql /var/lib/pgsql /usr/share/pgsql
+ 
+  - name: Install PostgreSQL
+    yum:
+     name: '{{ item }}'
+     state: latest
+    with_items:
+     - postgresql12-server
+     - postgresql12-contrib
+     - postgresql12-devel
+     - python-psycopg2
+    become: true
+    register: installed_psql
+
+  - name: Intialize PostgreSQL DB
+    command: /usr/pgsql-12/bin/postgresql-12-setup initdb
+    become: true
+    when: installed_psql.changed
+
+  - name: copy file pg_hba.conf
+    template:
+     src: pg_hba.conf
+     dest:  /var/lib/pgsql/12/data/pg_hba.conf
+     owner: root
+     group: root
+     mode:  0644
+
+
+  - name: Enable and Start PostgreSQL
+    service:
+     name: postgresql-12
+     state: started
+     enabled: yes
+    become: true
+
+  - name: Create a database for Sonar.
+    postgresql_db:
+     name: sonar
+     state: present
+
+  - name: Create a sonar user.
+    postgresql_user:
+     db: sonar
+     name: sonar
+    # host: localhost
+    # priv: snoar.*:ALL
+     password: sonar123@
+     encrypted: yes
+    #with_items: localhost
+    become: true
+    become_user: postgres
+ 

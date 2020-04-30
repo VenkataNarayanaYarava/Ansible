@@ -1,0 +1,85 @@
+- name: set Selinux
+  command: setenforce 0
+
+- name: set Selinux
+  command: sed -i s/^SELINUX=.*$/SELINUX=permissive/ /etc/selinux/config
+
+- name: Set Ulimit
+  raw: echo "sonar   -   nofile   65536" >> /etc/security/limits.conf
+
+- name: Set Ulimit
+  raw: echo "sonar   -   nproc    4096" >> /etc/security/limits.conf
+
+- name: Set Ulimit
+  raw: echo "root    -   nofile   65536" >> /etc/security/limits.conf
+
+- name: Set Ulimit
+  raw: echo "root    -   nproc    4096" >> /etc/security/limits.conf
+
+- name: Set fs.file
+  raw: echo "fs.file-max=65536" >> /etc/sysctl.conf
+
+- name: Set vm.max.map
+  raw: echo "vm.max_map_count=262144" >> /etc/sysctl.conf
+
+- name: Installing Java
+  yum:
+   name: java-11-openjdk
+   state: latest
+
+- name: Set JAVA_HOME
+  lineinfile:
+    dest: ~/.bashrc
+    state: present
+    regexp: '^JAVA_HOME'
+    line: 'JAVA_HOME=/usr/lib/jvm/java-11-openjdk-11.0.5.10-0.el7_7.x86_64/'
+
+- name: Set JAVA_PATH
+  lineinfile:
+    dest: ~/.bashrc
+    state: present
+    regexp: '^PATH'
+    line: 'PATH=/usr/lib/jvm/java-11-openjdk-11.0.5.10-0.el7_7.x86_64/bin:$PATH'
+
+- name: Source Bashrc
+  action: shell source ~/.bashrc
+  args:
+    executable: /bin/bash
+  register: find_output
+
+- debug:
+    var: find_output
+
+- name: Download Maven
+  get_url: url=http://www-us.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz dest=/tmp/
+
+- name: UnArchive_Maven
+  unarchive:
+    src: /tmp/apache-maven-3.6.3-bin.tar.gz
+    dest: /tmp/
+    remote_src: yes
+
+- name: Move Maven File Content
+  command: 'mv -f /tmp/apache-maven-3.6.3/ /opt/apache-maven'
+
+- name: Maven path configuration
+  lineinfile:
+  dest: /etc/profile.d/maven.sh
+   line: '{{ item.line }}'
+   create: yes
+   state: present
+  with_items:
+   - { line: 'export M2_HOME=/opt/apache-maven' }
+   - { line: 'export PATH=$PATH:$M2_HOME/bin' }
+
+- name: Giving Executing Permission to MAVEN directory
+  command: chmod +x /etc/profile.d/maven.sh
+
+- name: Source Bashrc
+  action: shell source /etc/profile.d/maven.sh
+  args:
+    executable: /bin/bash
+  register: find_output
+
+- debug:
+    var: find_output
